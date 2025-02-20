@@ -28,55 +28,50 @@ void fetch_instruction(int32_t * memory, int *registers) {
 
 Instruction decode_instruction(int32_t reg) {
   // Return the decoded form of the IR register
-  return *(Instruction *) & reg;
+  return *(Instruction *)&reg;
 }
 
 int tick(int32_t * memory, int32_t * registers) {
   // Emulates one CPU clock tick
-  //
-  // Returns the number of instructions executed.
-  // (Simple version always returns 1 unless halted)
-  // 
-  // 1. Load the next intruction into the `IR` register
-  // 2. Decode the instruction for local use
-  // 3. Execute the instruction
-  // - Perform any needed ALU operations
-  // - Perform any needed memory operations
-  // - Write back register values as needed
-  // 
-  // The system `memory` and `registers` are provided
-  // 
-  // Both memory and registers may be accessed as arrays of 32-bit words. For
-  // example: 
-  // register[R0] // Access register 0
-  // register[R3] = 12 // Store 12 to register 3
-  // memory[7] // Access memory location 7
-  // memory[3] = 4 // Store 4 to memory location 3
-  // 
-  // Operation names are provided in a global `enum` so they can be checked
-  // easily
-  // e.g: inst.op == LoadImmediate
-  // 
-  // Other definitions can be found in emulator.h
-
   fetch_instruction(memory, registers);
   Instruction inst = decode_instruction(registers[IR]);
 
+  // Print the fetched instruction for debugging
+  print_instruction(inst);
+
+  // Execute the instruction
   if (inst.op == Halt) {
-    return 0;
+    return 0; // Halt the processor
   } else if (inst.op == LoadImmediate) {
     registers[inst.dst] = inst.immediate;
   } else if (inst.op == Add) {
-    registers[inst.dst] = registers[inst.src] + registers[inst.dst];
+    registers[inst.dst] += registers[inst.src];
   } else if (inst.op == AddImmediate) {
     registers[inst.dst] = registers[inst.src] + inst.immediate;
+  } else if (inst.op == And) {
+    registers[inst.dst] &= registers[inst.src];
+  } else if (inst.op == Or) {
+    registers[inst.dst] |= registers[inst.src];
+  } else if (inst.op == Xor) {
+    registers[inst.dst] ^= registers[inst.src];
+  } else if (inst.op == Jump) {
+    registers[IP] = inst.immediate;
+    return 1;
+  } else if (inst.op == BranchOnEqual) {
+    if (registers[inst.src] == registers[inst.dst]) {
+      registers[IP] = inst.immediate;
+      return 1;
+    }
+  } else {
+    printf("Unknown operation: %d\n", inst.op);
+    exit(1);
   }
 
+  // Increment the instruction pointer (IP) to point to the next instruction
   registers[IP]++;
 
-  return 1;
+  return 1; // Instruction executed
 }
-
 /*
  * It is not recommended to modify any code below this point
  */
